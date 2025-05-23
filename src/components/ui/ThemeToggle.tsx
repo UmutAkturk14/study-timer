@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
+import { Sun, Moon } from "lucide-react";
 
 const ThemeToggle: React.FC = () => {
   const [isDark, setIsDark] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     const saved = localStorage.getItem("theme");
     if (saved) return saved === "dark";
-    // Default to match system preference
     return window.matchMedia("(prefers-color-scheme: dark)").matches;
   });
 
@@ -26,10 +26,23 @@ const ThemeToggle: React.FC = () => {
     <button
       onClick={toggleTheme}
       aria-label="Toggle Dark Mode"
-      className="p-2 rounded focus:outline-none bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
       title="Toggle light/dark theme"
+      className="relative flex items-center justify-center w-10 h-10 rounded-full
+                 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700
+                 transition-colors duration-500 shadow-md focus:outline-none"
     >
-      {isDark ? "🌙 Dark" : "☀️ Light"}
+      <Sun
+        size={24}
+        className={`absolute transition-opacity duration-500 ${
+          isDark ? "opacity-100" : "opacity-0"
+        } text-yellow-500`}
+      />
+      <Moon
+        size={24}
+        className={`absolute transition-opacity duration-500 ${
+          isDark ? "opacity-0" : "opacity-100"
+        } text-indigo-400`}
+      />
     </button>
   );
 };
