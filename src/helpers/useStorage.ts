@@ -37,63 +37,60 @@ export const useStorage = () => {
   }, []);
 
   // Update: merge existing object with new value
-const update = useCallback(
-  (key: StorageKey, value: Record<string, unknown> & { time?: number }) => {
-    if (typeof window === "undefined") return;
+  const update = useCallback(
+    (key: StorageKey, value: Record<string, unknown> & { time?: number }) => {
+      if (typeof window === "undefined") return;
 
-    try {
-      const existingRaw = get(key);
+      try {
+        const existingRaw = get(key);
 
-      // ─────────────────────────────────────────
-      // 1️⃣  Extract the current sessions array
-      // ─────────────────────────────────────────
-      let sessions: Record<string, unknown>[] = [];
+        // ─────────────────────────────────────────
+        // 1️⃣  Extract the current sessions array
+        // ─────────────────────────────────────────
+        let sessions: Record<string, unknown>[] = [];
 
-      if (
-        existingRaw &&
-        typeof existingRaw === "object" &&
-        "sessions" in existingRaw &&
-        Array.isArray((existingRaw).sessions)
-      ) {
-        // Current shape is the wrapper object
-        sessions = [...(existingRaw).sessions];
-      } else if (Array.isArray(existingRaw)) {
-        // Legacy: plain array stored
-        sessions = [...existingRaw];
-      } else if (existingRaw) {
-        // Legacy: single object stored
-        sessions = [existingRaw];
+        if (
+          existingRaw &&
+          typeof existingRaw === "object" &&
+          "sessions" in existingRaw &&
+          Array.isArray((existingRaw).sessions)
+        ) {
+          // Current shape is the wrapper object
+          sessions = [...(existingRaw).sessions];
+        } else if (Array.isArray(existingRaw)) {
+          // Legacy: plain array stored
+          sessions = [...existingRaw];
+        } else if (existingRaw) {
+          // Legacy: single object stored
+          sessions = [existingRaw];
+        }
+
+        // ─────────────────────────────────────────
+        // 2️⃣  Append new entry (duplicates allowed)
+        // ─────────────────────────────────────────
+        sessions.push(value);
+
+        // ─────────────────────────────────────────
+        // 3️⃣  Re-calculate aggregates
+        // ─────────────────────────────────────────
+        const totalTime = sessions.reduce(
+          (acc, s) => acc + (typeof s.time === "number" ? s.time : 0),
+          0
+        );
+
+        const updatedWrapper = {
+          sessions,
+          time: totalTime,
+          sessionCount: sessions.length,
+        };
+
+        localStorage.setItem(key, JSON.stringify(updatedWrapper));
+      } catch (err) {
+        console.error(`Error updating localStorage key "${key}":`, err);
       }
-
-      // ─────────────────────────────────────────
-      // 2️⃣  Append new entry (duplicates allowed)
-      // ─────────────────────────────────────────
-      sessions.push(value);
-
-      // ─────────────────────────────────────────
-      // 3️⃣  Re-calculate aggregates
-      // ─────────────────────────────────────────
-      const totalTime = sessions.reduce(
-        (acc, s) => acc + (typeof s.time === "number" ? s.time : 0),
-        0
-      );
-
-      const updatedWrapper = {
-        sessions,
-        time: totalTime,
-        sessionCount: sessions.length,
-      };
-
-      localStorage.setItem(key, JSON.stringify(updatedWrapper));
-    } catch (err) {
-      console.error(`Error updating localStorage key "${key}":`, err);
-    }
-  },
-  [get]
-);
-
-
-
+    },
+    [get]
+  );
 
   return { get, set, remove, update };
 };

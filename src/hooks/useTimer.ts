@@ -1,6 +1,7 @@
 // src/hooks/useTimer.ts
 import { useState, useEffect, useRef } from "react";
 
+
 interface UseTimerOptions {
   /** called once automatically when the countdown reaches zero */
   onFinish?: () => void;
@@ -67,6 +68,7 @@ export const useTimer = (
     setJustFinished(false);
     setTimeLeft(duration);
     hasFinished.current = false; // ✅ ensure safe restart
+    localStorage.setItem('workStatus', JSON.stringify({isBreak: false}))
   };
 
   return {

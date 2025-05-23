@@ -5,18 +5,27 @@ import TimeSelector from "./TimeSelector";
 import TimerControls from "./TimerControls";
 import StudySwitch from "./StudySwitch";
 import MotivationalQuote from "./MotivationalQuote";
-import MutipleSessionPanel from "./MutipleSessionPanel";   // ← keep the file-name you already have
+import MultipleSessionPanel from "./MutipleSessionPanel";
 import { WorkModes } from "../types/sessions";
 import { useStorage } from "../../helpers/useStorage";
 import { DateParser } from "../../helpers/dateParser";
 import { triggerSuccessPopUp } from "../ui/SuccessPopUp";
+import { setSessionCount as persistSessionCount } from "../../helpers/setChoices"; // ← add
 
 export default function TimerPanel() {
-  /* ───────────────────────────────────────── storage helpers ─────────── */
   const storage = useStorage();
   const { get, set, update, remove } = storage;
 
-  /* ───────────────────────────────────────── initial study mode ───────── */
+  /* ─── break / work status ─── */
+  const [isBreak, setIsBreak] = useState(get("workStatus")?.isBreak ?? false);
+  useEffect(() => {
+    const id = setInterval(() => {
+      setIsBreak(get("workStatus")?.isBreak ?? false);
+    }, 500);
+    return () => clearInterval(id);
+  }, [get]);
+
+  /* ─── study mode (Pomodoro etc.) ─── */
   const { BasicPomodoro } = WorkModes;
   const [session, setSession] = useState(() => {
     return (
@@ -28,20 +37,31 @@ export default function TimerPanel() {
     );
   });
 
-  /* ───────────────────────────────────────── multi-session progress ───── */
+  /* ─── lifted sessionCount ─── */
+  const [sessionCount, setSessionCount] = useState<number>(() => {
+    const c = get("choices");
+    return c?.sessionCount ?? 5;
+  });
+
+  const handleSessionCountChange = (cnt: number) => {
+    setSessionCount(cnt);
+    persistSessionCount(cnt); // persist to localStorage
+  };
+
+  /* ─── current index inside multi-session ─── */
   const [sessionIndex, setSessionIndex] = useState(
     get(`${DateParser()}-Multiple`)?.sessionCount ?? 0
   );
 
-  /*  Reset progress whenever the user flips between
-      single-session and multi-session modes.                            */
-  useEffect(() => {
-    setSessionIndex(0);
-  }, [session.multipleSession]);
+  /* reset index when user toggles single ↔ multi */
+  useEffect(() => setSessionIndex(0), [session.multipleSession]);
 
-  /* ───────────────────────────────────────── timer duration & running ─── */
-  const [selectedMinutes, setSelectedMinutes] = useState(25);
+  /* ─── minutes picker ─── */
+  const [selectedMinutes, setSelectedMinutes] = useState(
+    isBreak ? get("choices")?.breakTime ?? 10 : get("choices")?.workTime ?? 45
+  );
 
+  /* ─── timer hook ─── */
   const {
     timeLeft,
     isRunning,
@@ -52,28 +72,36 @@ export default function TimerPanel() {
     justFinished,
   } = useTimer(selectedMinutes * 60, {
     onFinish: () => {
-      /* write today’s study stats */
-      update(DateParser(), { time: selectedMinutes, session });
+      const today = DateParser();
 
-      if (session.multipleSession) {
-        update(`${DateParser()}-Multiple`, { time: selectedMinutes, session });
+      update(today, { time: selectedMinutes, session });
 
-        /* advance the progress bar */
-        setSessionIndex((prev: number) => prev + 1);
+      if (session.multipleSession && !get("workStatus").isBreak) {
+        update(`${today}-Multiple`, { time: selectedMinutes, session });
+
+        const isFinalSession = sessionIndex + 1 >= sessionCount;
+
+        if (isFinalSession) {
+          remove(`${today}-Multiple`); // streak complete → reset
+          setSessionIndex(0);
+          triggerSuccessPopUp(true); // show streak complete popup
+        } else {
+          setSessionIndex(sessionIndex + 1); // continue streak
+          triggerSuccessPopUp(); // normal session complete popup
+        }
       } else {
-        remove(`${DateParser()}-Multiple`);
+        remove(`${today}-Multiple`); // not a streak, make sure it’s clean
+        triggerSuccessPopUp(); // regular session popup
       }
-
-      triggerSuccessPopUp();
     },
   });
 
-  /* keep raw seconds in sync with the picker while the timer is stopped */
+  /* keep raw seconds in sync while stopped */
   useEffect(() => {
     if (!isRunning) setDuration(selectedMinutes * 60);
   }, [selectedMinutes, isRunning, setDuration]);
 
-  /* clamp minutes if the user switches to a mode with a lower max */
+  /* clamp minutes when mode changes */
   useEffect(() => {
     if (!isRunning) {
       const safe = Math.min(selectedMinutes, session.maxDuration);
@@ -82,11 +110,9 @@ export default function TimerPanel() {
     }
   }, [session, isRunning, setDuration, selectedMinutes]);
 
-  /* ───────────────────────────────────────── render ───────────────────── */
   return (
     <div id="time-panel" className="w-full mx-auto mt-10 px-4">
-      <div className="flex flex-col items-center gap-6 bg-white dark:bg-gray-900 rounded-xl p-6 shadow-sm min-h-[45svh]">
-        {/* time selector */}
+      <div className="flex flex-col items-center gap-6 rounded-xl p-3 shadow-xl dark:shadow-gray-700 min-h-[45svh]">
         <TimeSelector
           key={session.id}
           minutes={selectedMinutes}
@@ -96,29 +122,29 @@ export default function TimerPanel() {
           sessionMaxMinutes={session.maxDuration}
           sessionInterval={session.interval}
           multipleSession={session.multipleSession}
+          isBreak={isBreak}
         />
 
-        {/* controls */}
         <TimerControls
           isRunning={isRunning}
           onStart={start}
           onPause={pause}
           onReset={reset}
+          isBreak={isBreak}
         />
 
-        {/* multi-session progress indicator */}
         {session.multipleSession && (
-          <MutipleSessionPanel
+          <MultipleSessionPanel
             currentIndex={sessionIndex}
             setCurrentIndex={setSessionIndex}
+            sessionCount={sessionCount}
+            setSessionCount={handleSessionCountChange}
           />
         )}
 
-        {/* “finished” flash message, if any */}
         {justFinished}
       </div>
 
-      {/* mode switch / quote */}
       {!isRunning && <StudySwitch value={session} onChange={setSession} />}
       {isRunning && <MotivationalQuote />}
     </div>

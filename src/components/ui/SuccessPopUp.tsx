@@ -1,97 +1,131 @@
-/* ────────────────────────────────────────────────────────────── *
- *  SessionFinishedModal.tsx                                      *
- *  A one-liner helper “triggerSuccessPopUp()” shows the modal.   *
- * ────────────────────────────────────────────────────────────── */
-
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { DateParser } from "../../helpers/dateParser";
+import Celebrate from "./Celebrate";
 
-/* --------------------------------------------------------------
-   Global trigger pointer – gets initialised when the component
-   mounts.  If the helper is called before mount, nothing happens.
----------------------------------------------------------------- */
-let _openModal: (() => void) | null = null;
+let _openModal: ((streakDone?: boolean) => void) | null = null;
 
-/* --------------------------------------------------------------
-   Call this anywhere in your app to open the “session finished”
-   pop-up.  ▼
----------------------------------------------------------------- */
-export const triggerSuccessPopUp = () => {
-  if (_openModal) _openModal();
+export const triggerSuccessPopUp = (streakDone: boolean = false) => {
+  _openModal?.(streakDone);
 };
 
-/* --------------------------------------------------------------
-   Props allow you to hook “take break” and “next session”.
----------------------------------------------------------------- */
 type Props = {
   onBreak?: () => void;
   onNext?: () => void;
 };
 
-const setBreak = () => {
-  localStorage.setItem('breakStatus', JSON.stringify({isBreak: true}))
-}
-
-
 const SessionFinishedModal = ({ onBreak, onNext }: Props) => {
   const [open, setOpen] = useState(false);
+  const [streakDone, setStreakDone] = useState(false);
+  const [showCelebrate, setShowCelebrate] = useState(false);
 
-  /* register the opener on mount, unregister on unmount */
+  // We'll keep track of break status inside component state to avoid reading localStorage on every render
+  const [isBreak, setIsBreak] = useState(false);
+
   useEffect(() => {
-    _openModal = () => setOpen(true);
+    _openModal = (flag?: boolean) => {
+      setStreakDone(!!flag);
+      // Read the break status when modal opens
+      const stored = localStorage.getItem("workStatus");
+      const breakFlag = stored ? JSON.parse(stored).isBreak : false;
+      setIsBreak(!!breakFlag);
+      setOpen(true);
+    };
     return () => {
       _openModal = null;
     };
   }, []);
 
-  /* closed ⇒ render nothing */
-  if (!open) return null;
+  if (!open && !showCelebrate) return null;
 
-  /* local close helper */
   const close = () => setOpen(false);
 
-  /* modal ─ rendered through a portal so it sits at <body> level */
+  const setBreak = () =>
+    localStorage.setItem("workStatus", JSON.stringify({ isBreak: true }));
+
+  const clearTodayStreak = () =>
+    localStorage.removeItem(`${DateParser()}-Multiple`);
+
+  const handleCelebrate = () => {
+    clearTodayStreak();
+    setBreak();
+    setOpen(false);
+    setShowCelebrate(true);
+    setTimeout(() => setShowCelebrate(false), 5000);
+  };
+
+  // Conditionally define title and message
+  let title = "🎉 Great job!";
+  let message = "You’ve completed this study session.";
+
+  if (streakDone) {
+    title = "🏁 Streak Complete!";
+    message = "You finished every session you planned today. Amazing focus!";
+  } else if (isBreak) {
+    title = "⌛ Let's get back to work!";
+    message = "Hope you had a refreshing break. Ready for the next session?";
+  }
+
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-11/12 max-w-md rounded-lg bg-white dark:bg-gray-900 p-6 text-center shadow-lg">
-        <h2 className="mb-2 text-2xl font-bold text-green-600">
-          🎉 Great job!
-        </h2>
-        <p className="mb-6 text-lg text-gray-700 dark:text-gray-300">
-          You’ve completed this study session.
-        </p>
+    <>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-11/12 max-w-md rounded-lg bg-white dark:bg-gray-900 p-6 text-center shadow-lg">
+            <h2 className="mb-2 text-2xl font-bold text-green-600">{title}</h2>
+            <p className="mb-6 text-lg text-gray-700 dark:text-gray-300">
+              {message}
+            </p>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <button
-            className="rounded-md bg-yellow-500 px-4 py-2 font-medium text-white transition hover:bg-yellow-600"
-            onClick={() => {
-              onBreak?.();
-              close();
-            }}
-          >
-            Take&nbsp;Break
-          </button>
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+              {streakDone ? (
+                <>
+                  <button
+                    className="rounded-md bg-blue-600 px-4 py-2 font-medium text-white transition hover:bg-blue-700"
+                    onClick={handleCelebrate}
+                  >
+                    Celebrate&nbsp;🎉
+                  </button>
+                </>
+              ) : (
+                <>
+                  {!isBreak && (
+                    <button
+                      className="rounded-md bg-yellow-500 px-4 py-2 font-medium text-white transition hover:bg-yellow-600"
+                      onClick={() => {
+                        onBreak?.();
+                        setBreak();
+                        close();
+                      }}
+                    >
+                      Take&nbsp;Break
+                    </button>
+                  )}
 
-          <button
-            className="rounded-md bg-blue-600 px-4 py-2 font-medium text-white transition hover:bg-blue-700"
-            onClick={() => {
-              // onNext?.();
-              setBreak();
-              close();
-            }}
-          >
-            Next&nbsp;Session
-          </button>
+                  <button
+                    className="rounded-md bg-blue-600 px-4 py-2 font-medium text-white transition hover:bg-blue-700"
+                    onClick={() => {
+                      // Set workStatus to isBreak: false because user is moving from break to work session
+                      localStorage.setItem(
+                        "workStatus",
+                        JSON.stringify({ isBreak: false })
+                      );
+                      setIsBreak(false); // update internal state accordingly
 
-          <button
-            className="rounded-md bg-gray-300 px-4 py-2 font-medium text-gray-800 transition hover:bg-gray-400 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
-            onClick={close}
-          >
-            Close
-          </button>
+                      onNext?.();
+                      close();
+                    }}
+                  >
+                    Next&nbsp;Session
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
-    </div>,
+      )}
+
+      {showCelebrate && <Celebrate />}
+    </>,
     document.body
   );
 };

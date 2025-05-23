@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
+import { setSessionCount } from "../../helpers/setChoices";
 
-const DEFAULT_OPTIONS = Array.from({ length: 10 }, (_, i) => i + 1);
+const DEFAULT_OPTIONS = Array.from({ length: 6 }, (_, i) => i + 1);
 
 type Props = {
   currentIndex: number;
@@ -8,13 +9,20 @@ type Props = {
 };
 
 const MultipleSessionPanel = ({ currentIndex, setCurrentIndex }: Props) => {
-  const [totalSessions, setTotalSessions] = useState(4);
+  const [totalSessions, setTotalSessions] = useState(() => {
+    const choices = localStorage.getItem("choices");
+    return choices ? JSON.parse(choices).sessionCount ?? 5 : 5;
+  });
+
   const [selectorOpen, setSelectorOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const close = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
         setSelectorOpen(false);
       }
     };
@@ -58,7 +66,9 @@ const MultipleSessionPanel = ({ currentIndex, setCurrentIndex }: Props) => {
 
         <div
           className={`absolute left-0 z-10 mt-1 w-full overflow-hidden rounded-md bg-white shadow-md transition-all duration-300 dark:bg-gray-800 ${
-            selectorOpen ? "pointer-events-auto scale-100 opacity-100" : "pointer-events-none scale-95 opacity-0"
+            selectorOpen
+              ? "pointer-events-auto scale-100 opacity-100"
+              : "pointer-events-none scale-95 opacity-0"
           }`}
         >
           {DEFAULT_OPTIONS.map((option) => (
@@ -66,6 +76,7 @@ const MultipleSessionPanel = ({ currentIndex, setCurrentIndex }: Props) => {
               key={option}
               onClick={() => {
                 setTotalSessions(option);
+                setSessionCount(option); // Persist to localStorage
                 setCurrentIndex(0); // Reset to first session
                 setSelectorOpen(false);
               }}

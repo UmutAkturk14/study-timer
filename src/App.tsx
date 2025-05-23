@@ -5,7 +5,7 @@ import SessionFinishedModal from "./components/ui/SuccessPopUp";
 
 function App() {
   return (
-    <div className="w-screen min-h-[100svh] bg-gray-50 dark:bg-gray-900">
+    <div className="w-screen min-h-[100svh] bg-gray-50 dark:bg-gradient-to-br dark:from-gray-800 dark:to-emerald-950 ">
       <Navbar />
       <Page />
 
