@@ -13,7 +13,7 @@ const MotivationalQuote = () => {
   }, []);
 
   return (
-    <div className="w-full mt-4 flex flex-col justify-center items-center mx-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-800 rounded-xl shadow-lg p-2">
+    <div className="w-full mt-1 flex flex-col justify-center items-center mx-auto border border-gray-200 dark:border-gray-800 rounded-xl shadow-lg p-2">
       {/* quote line */}
       <p className="text-base font-semibold text-gray-800 dark:text-gray-50">
         {quoteText}

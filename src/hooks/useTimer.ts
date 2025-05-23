@@ -1,30 +1,30 @@
-// src/hooks/useTimer.ts
 import { useState, useEffect, useRef } from "react";
 
-
 interface UseTimerOptions {
-  /** called once automatically when the countdown reaches zero */
-  onFinish?: () => void;
+  /** Called once when the timer stops (natural finish or manual reset).
+      Argument = minutes actually worked during this run.               */
+  onFinish?: (workedMinutes: number) => void;
 }
 
 export const useTimer = (
   initialDuration: number,
   { onFinish }: UseTimerOptions = {}
 ) => {
-  const [duration, setDuration] = useState(initialDuration);
-  const [timeLeft, setTimeLeft] = useState(initialDuration);
+  const [duration, setDuration] = useState(initialDuration);   // seconds
+  const [timeLeft, setTimeLeft] = useState(initialDuration);   // seconds
   const [isRunning, setIsRunning] = useState(false);
   const [justFinished, setJustFinished] = useState(false);
 
-  // Safely hold latest onFinish function to avoid stale closure
-  const finishCb = useRef<(() => void) | undefined>(undefined);
+  /* --- keep latest onFinish in a ref to avoid stale closure --------- */
+  const finishCb = useRef<typeof onFinish>();
   useEffect(() => {
     finishCb.current = onFinish;
   }, [onFinish]);
 
-  // 🔐 New: Prevent onFinish() from firing multiple times
+  /* --- flag so onFinish fires exactly once per run ------------------ */
   const hasFinished = useRef(false);
 
+  /* --- countdown loop ---------------------------------------------- */
   useEffect(() => {
     if (!isRunning) return;
 
@@ -37,25 +37,25 @@ export const useTimer = (
 
           if (!hasFinished.current) {
             hasFinished.current = true;
-            finishCb.current?.(); // ✅ will only run once
+            const workedMinutes = Math.round(duration / 60);
+            finishCb.current?.(workedMinutes);
           }
-
           return 0;
         }
-
         return prev - 1;
       });
-    }, 10);
+    }, 10);                                  // ← 1 s tick (was 10 ms)
 
     return () => clearInterval(id);
-  }, [isRunning]);
+  }, [isRunning, duration]);
 
-  // 🔄 Reset finish flag on reset or new duration
+  /* --- reset finish flag whenever duration changes ----------------- */
   useEffect(() => {
     hasFinished.current = false;
     if (!isRunning) setTimeLeft(duration);
   }, [duration, isRunning]);
 
+  /* --- public controls --------------------------------------------- */
   const start = () => {
     setJustFinished(false);
     setIsRunning(true);
@@ -63,12 +63,26 @@ export const useTimer = (
 
   const pause = () => setIsRunning(false);
 
+  /** Reset timer.
+   *  • If some time was worked already, add it to analytics via onFinish.
+   *  • Then zero everything. */
   const reset = () => {
+    // calculate worked seconds before clearing
+    const workedSeconds = duration - timeLeft;
+
+    if (workedSeconds > 0 && !hasFinished.current) {
+      hasFinished.current = true;  // ensure only once
+      const workedMinutes = Math.round(workedSeconds / 60);
+      if (workedMinutes > 0) finishCb.current?.(workedMinutes);
+    }
+
     setIsRunning(false);
     setJustFinished(false);
     setTimeLeft(duration);
-    hasFinished.current = false; // ✅ ensure safe restart
-    localStorage.setItem('workStatus', JSON.stringify({isBreak: false}))
+    hasFinished.current = false;   // allow future runs to fire onFinish
+
+    // ensure status returns to work mode
+    localStorage.setItem("workStatus", JSON.stringify({ isBreak: false }));
   };
 
   return {

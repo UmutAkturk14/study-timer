@@ -71,27 +71,31 @@ export default function TimerPanel() {
     setDuration,
     justFinished,
   } = useTimer(selectedMinutes * 60, {
-    onFinish: () => {
+    onFinish: (workedMinutes) => {
       const today = DateParser();
 
-      update(today, { time: selectedMinutes, session });
-
-      if (session.multipleSession && !get("workStatus").isBreak) {
-        update(`${today}-Multiple`, { time: selectedMinutes, session });
-
-        const isFinalSession = sessionIndex + 1 >= sessionCount;
-
-        if (isFinalSession) {
-          remove(`${today}-Multiple`); // streak complete → reset
-          setSessionIndex(0);
-          triggerSuccessPopUp(true); // show streak complete popup
-        } else {
-          setSessionIndex(sessionIndex + 1); // continue streak
-          triggerSuccessPopUp(); // normal session complete popup
-        }
+      if (workedMinutes) {
+        update(DateParser(), { time: workedMinutes, session });
       } else {
-        remove(`${today}-Multiple`); // not a streak, make sure it’s clean
-        triggerSuccessPopUp(); // regular session popup
+        update(today, { time: selectedMinutes, session });
+
+        if (session.multipleSession && !get("workStatus").isBreak) {
+          update(`${today}-Multiple`, { time: selectedMinutes, session });
+
+          const isFinalSession = sessionIndex + 1 >= sessionCount;
+
+          if (isFinalSession) {
+            remove(`${today}-Multiple`); // streak complete → reset
+            setSessionIndex(0);
+            triggerSuccessPopUp(true); // show streak complete popup
+          } else {
+            setSessionIndex(sessionIndex + 1); // continue streak
+            triggerSuccessPopUp(); // normal session complete popup
+          }
+        } else {
+          remove(`${today}-Multiple`); // not a streak, make sure it’s clean
+          triggerSuccessPopUp(); // regular session popup
+        }
       }
     },
   });
