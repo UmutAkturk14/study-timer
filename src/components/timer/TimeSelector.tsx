@@ -1,8 +1,22 @@
-import { useRef, useState, useEffect, useMemo, useCallback } from "react";
+import {
+  useRef,
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+} from "react";
 import type { TimeSelectorProps } from "../types/interfaces";
 import { formatTime } from "../../utils/formatTime";
 
-const TimeSelector: React.FC<TimeSelectorProps> = ({
+/* ────────────────────────────────────────────────────────────── *
+ * Extend the existing props with an optional “isBreak” flag.
+ * -------------------------------------------------------------  */
+interface Props extends TimeSelectorProps {
+  /** `true` → break selector, `false` (default) → work/study selector */
+  isBreak?: boolean;
+}
+
+const TimeSelector: React.FC<Props> = ({
   minutes,
   setMinutes,
   timeLeft,
@@ -10,21 +24,23 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
   sessionMaxMinutes,
   sessionInterval,
   multipleSession,
+  isBreak = false,                    /* ← NEW */
 }) => {
   const circleRef = useRef<HTMLDivElement>(null);
   const [angle, setAngle] = useState(0);
+
   const totalMinutes = sessionMaxMinutes;
-  const interval = sessionInterval || 1; // fallback to 1 minute
+  const interval = sessionInterval || 1;
   const totalSeconds = useMemo(() => minutes * 60, [minutes]);
 
-  // Live update angle while running
+  /* ───────────────────────── live progress while running ─────── */
   useEffect(() => {
     if (!isRunning) return;
     const progress = timeLeft / totalSeconds; // 1 → 0
     setAngle(progress * 360);
   }, [isRunning, timeLeft, totalSeconds]);
 
-  // Reset knob position when timer is not running
+  /* ───────────────────────── reset knob when stopped ─────────── */
   useEffect(() => {
     if (!isRunning) {
       const deg = (minutes / totalMinutes) * 360;
@@ -32,12 +48,11 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
     }
   }, [isRunning, minutes, totalMinutes]);
 
-  // Pointer logic (working drag!)
+  /* ───────────────────────── pointer-drag logic ──────────────── */
   const updateTimeFromPointer = useCallback(
     (e: MouseEvent | TouchEvent) => {
       if (!circleRef.current || isRunning) return;
 
-      /* centre & pointer position ----------------------------------- */
       const rect = circleRef.current.getBoundingClientRect();
       const cx = rect.left + rect.width / 2;
       const cy = rect.top + rect.height / 2;
@@ -47,27 +62,19 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
       const clientY =
         "touches" in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
 
-      /* angle -------------------------------------------------------- */
       let deg = Math.atan2(clientY - cy, clientX - cx) * (180 / Math.PI);
-      deg = (deg + 90 + 360) % 360; // top = 0 deg
+      deg = (deg + 90 + 360) % 360; // 0° at top
 
-      /* minutes & snapping ------------------------------------------ */
-      const rawMinutes = Math.round((deg / 360) * totalMinutes);
-      const snapped = Math.max(
-        interval,
-        Math.round(rawMinutes / interval) * interval
-      );
+      const raw = Math.round((deg / 360) * totalMinutes);
+      const snapped = Math.max(interval, Math.round(raw / interval) * interval);
 
-      /* align knob perfectly to the snapped value ------------------- */
-      const snappedAngle = (snapped / totalMinutes) * 360;
-
-      setAngle(snappedAngle);
+      setAngle((snapped / totalMinutes) * 360);
       setMinutes(snapped);
     },
     [isRunning, setMinutes, totalMinutes, interval]
   );
 
-  // Attach/remove drag listeners
+  /* attach / detach drag listeners */
   const stopTracking = () => {
     window.removeEventListener("mousemove", updateTimeFromPointer);
     window.removeEventListener("touchmove", updateTimeFromPointer);
@@ -87,6 +94,15 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
 
   useEffect(() => stopTracking, []);
 
+  /* ───────────────────────── derived display info ─────────────── */
+  const label = isRunning
+    ? isBreak
+      ? "Break Left"
+      : "Time Left"
+    : isBreak
+    ? "Break Time"
+    : "Work Time";
+
   const display = isRunning
     ? formatTime(timeLeft)
     : `${String(minutes).padStart(2, "0")}:00`;
@@ -95,13 +111,20 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
     ? 360 - (timeLeft / totalSeconds) * 360
     : (minutes / totalMinutes) * 360;
 
+  /* colour theme: green/blue for work, amber/purple for break */
+  const colourWhenRunning = isBreak ? "#f59e0b" /* amber */ : "#10b981"; /* green */
+  const colourWhenStopped = isBreak ? "#fbbf24" /* lighter amber */ : "#0ea5e9"; /* blue */
+
   const conicStyle = {
     background: `conic-gradient(
-      ${isRunning ? "#10b981" : "#0ea5e9"} ${progressAngle}deg,
+      ${isRunning ? colourWhenRunning : colourWhenStopped} ${progressAngle}deg,
       #e5e7eb ${progressAngle}deg
     )`,
   };
 
+  const knobColour = isBreak ? "bg-amber-500 dark:bg-amber-400" : "bg-emerald-700 dark:bg-sky-400";
+
+  /* ───────────────────────── JSX ──────────────────────────────── */
   return (
     <div className="flex flex-col items-center justify-center mt-5 select-none">
       <div
@@ -112,35 +135,31 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
         style={conicStyle}
       >
         <div className="bg-white dark:bg-gray-900 rounded-full w-full h-full flex items-center justify-center relative">
-          {/* Center display */}
+          {/* centre display */}
           <div className="absolute inset-0 flex flex-col items-center justify-center text-emerald-700 dark:text-white">
-            <p className="text-lg text-gray-600 dark:text-gray-400">
-              {isRunning ? "Time Left" : "Work Time"}
-            </p>
-            <p
-              className={`text-4xl font-bold ${
-                isRunning ? "animate-pulse" : ""
-              }`}
-            >
+            <p className="text-lg text-gray-600 dark:text-gray-400">{label}</p>
+            <p className={`text-4xl font-bold ${isRunning ? "animate-pulse" : ""}`}>
               {display}
             </p>
-            <div
-              className="absolute w-full h-full flex items-start justify-center"
-              style={{ transform: `rotate(-${angle}deg)` }}
-            >
-              {isRunning && (
-                <div className="w-3 h-3 bg-emerald-700 dark:bg-emerald-400 rounded-full mt-[-9px] transition-colors duration-300" />
-              )}
-            </div>{" "}
+
+            {/* running indicator dot */}
+            {isRunning && (
+              <div
+                className="absolute w-full h-full flex items-start justify-center"
+                style={{ transform: `rotate(-${angle}deg)` }}
+              >
+                <div className={`w-3 h-3 ${knobColour} rounded-full mt-[-9px] transition-colors duration-300`} />
+              </div>
+            )}
           </div>
 
-          {/* Knob */}
+          {/* draggable knob (only when stopped) */}
           {!isRunning && (
             <div
               className="absolute w-full h-full flex items-start justify-center transition duration-300"
               style={{ transform: `rotate(${angle}deg)` }}
             >
-              <div className="w-5 h-5 bg-emerald-700 dark:bg-sky-400 rounded-full mt-[-12px] transition-colors duration-300" />
+              <div className={`w-5 h-5 ${knobColour} rounded-full mt-[-12px] transition-colors duration-300`} />
             </div>
           )}
         </div>

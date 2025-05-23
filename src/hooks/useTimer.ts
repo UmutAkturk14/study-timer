@@ -44,7 +44,7 @@ export const useTimer = (
 
         return prev - 1;
       });
-    }, 1000);
+    }, 10);
 
     return () => clearInterval(id);
   }, [isRunning]);
