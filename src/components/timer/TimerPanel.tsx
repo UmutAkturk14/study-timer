@@ -74,12 +74,12 @@ export default function TimerPanel() {
     onFinish: (workedMinutes) => {
       const today = DateParser();
 
-      if (workedMinutes) {
+      if (workedMinutes && workedMinutes !== selectedMinutes) {
         update(DateParser(), { time: workedMinutes, session });
       } else {
         update(today, { time: selectedMinutes, session });
 
-        if (session.multipleSession && !get("workStatus").isBreak) {
+        if (session.multipleSession && (!get("workStatus")?.isBreak && true)) {
           update(`${today}-Multiple`, { time: selectedMinutes, session });
 
           const isFinalSession = sessionIndex + 1 >= sessionCount;
