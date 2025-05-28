@@ -26,10 +26,10 @@ export default function NotesTab() {
 
   return (
     <div className="flex flex-col h-full">
-      <h3 className="mb-2 text-lg font-semibold">Quick Notes / Journal</h3>
+      <h3 className="m-4 text-lg font-semibold">Quick Notes / Journal</h3>
 
       <textarea
-        className="p-2 rounded bg-gray-100 dark:bg-transparent focus:outline-none focus:ring-0 dark:text-gray-200 resize-none flex-grow"
+        className="p-2 ml-2 rounded bg-transparent dark:bg-transparent focus:outline-none focus:ring-0 dark:text-gray-200 resize-none flex-grow"
         placeholder="Write your notes here..."
         value={draftNote}
         onChange={(e) => setDraftNote(e.target.value)}

@@ -85,8 +85,8 @@ export default function RemindersTab() {
   };
 
   return (
-    <div className="flex flex-col h-full max-w-xl mx-auto p-4 bg-white dark:bg-gray-900 rounded-lg shadow-md">
-      <h3 className="mb-4 text-2xl font-semibold text-gray-800 dark:text-gray-100">
+    <div className="flex flex-col h-full max-w-xl mx-auto p-4 bg-transparent rounded-lg shadow-md">
+      <h3 className="mb-4 text-lg font-semibold text-gray-800 dark:text-gray-100">
         Reminders / Upcoming Events
       </h3>
 
@@ -149,7 +149,9 @@ export default function RemindersTab() {
                 className="w-5 h-5 cursor-pointer text-blue-600 rounded border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 transition"
               />
               <div className="flex flex-col">
-                <span className="text-base font-medium leading-tight">{text}</span>
+                <span className="text-base font-medium leading-tight">
+                  {text}
+                </span>
                 {dueMinutes !== undefined && (
                   <span className="text-xs text-gray-500 dark:text-gray-400">
                     Due in {dueMinutes} minute{dueMinutes !== 1 ? "s" : ""}

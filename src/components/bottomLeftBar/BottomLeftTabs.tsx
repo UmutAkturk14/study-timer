@@ -17,7 +17,7 @@ export default function BottomLeftTabs() {
   const [activeTab, setActiveTab] = useState("analytics");
 
   return (
-    <div className="flex flex-col h-11/12 mt-4 ml-4 dark:shadow-gray-700 shadow-xl rounded-lg overflow-hidden">
+    <div className="flex flex-col h-11/12 mt-4 ml-4 rounded-lg overflow-hidden">
       {/* Tab headers */}
       <nav className="flex border-b border-gray-300 dark:border-gray-700">
         {tabs.map(({ id, label, icon }) => (

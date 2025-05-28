@@ -1,17 +1,31 @@
-import React, { useState, useEffect } from "react";
-import HabitsModal from "./HabitsModal"
+import React, {
+  useState,
+  useEffect,
+  ChangeEvent,
+  KeyboardEvent,
+  FC,
+} from "react";
+import HabitsModal from "./HabitsModal";
 
 const STORAGE_KEY = "habitsData";
 
-function formatDate(date = new Date()) {
-  return date.toISOString().slice(0, 10); // "YYYY-MM-DD"
+/* ---------- types ---------- */
+interface Habit {
+  id: number;
+  name: string;
+  history: Record<string, boolean>; // key = YYYY-MM-DD
 }
 
-export default function HabitsTab() {
-  const [habits, setHabits] = useState(() => {
+/* ---------- util ---------- */
+const formatDate = (date: Date = new Date()): string =>
+  date.toISOString().slice(0, 10); // YYYY-MM-DD
+
+/* ---------- component ---------- */
+const HabitsTab: FC = () => {
+  const [habits, setHabits] = useState<Habit[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : [];
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? (JSON.parse(raw) as Habit[]) : [];
     } catch {
       return [];
     }
@@ -22,109 +36,66 @@ export default function HabitsTab() {
 
   const today = formatDate();
 
+  /* persist to localStorage whenever habits change */
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(habits));
   }, [habits]);
 
-  const toggleDoneToday = (id) => {
+  /* ---------- CRUD helpers ---------- */
+  const toggleDoneToday = (id: number) =>
     setHabits((prev) =>
-      prev.map((habit) => {
-        if (habit.id === id) {
-          const newHistory = { ...habit.history };
-          newHistory[today] = !newHistory[today];
-          return { ...habit, history: newHistory };
-        }
-        return habit;
-      })
+      prev.map((h) =>
+        h.id === id
+          ? { ...h, history: { ...h.history, [today]: !h.history[today] } }
+          : h
+      )
     );
-  };
 
   const addHabit = () => {
-    const trimmed = newHabitName.trim();
-    if (!trimmed) return;
-
-    const newHabit = {
-      id: Date.now(),
-      name: trimmed,
-      history: {},
-    };
-    setHabits((prev) => [newHabit, ...prev]);
+    const name = newHabitName.trim();
+    if (!name) return;
+    setHabits((prev) => [{ id: Date.now(), name, history: {} }, ...prev]);
     setNewHabitName("");
   };
 
-  const deleteHabit = (id) => {
+  const deleteHabit = (id: number) =>
     setHabits((prev) => prev.filter((h) => h.id !== id));
-  };
 
-  // Stats
-  const totalHabits = habits.length;
-  const doneTodayCount = habits.filter((h) => h.history[today]).length;
-  const completionRate = totalHabits
-    ? Math.round((doneTodayCount / totalHabits) * 100)
-    : 0;
+  /* ---------- split lists ---------- */
+  const undone = habits.filter((h) => !h.history[today]);
+  const done = habits.filter((h) => h.history[today]);
 
+  /* ---------- stats (if you use them somewhere) ---------- */
+  const completionRate =
+    habits.length === 0 ? 0 : Math.round((done.length / habits.length) * 100);
+
+  /* ---------- render ---------- */
   return (
     <div className="flex flex-col h-full px-2">
-      <h3 className="mb-2 text-lg font-semibold flex items-center justify-between">
+      {/* header */}
+      <h3 className="m-2 text-lg font-semibold flex items-center justify-between">
         Habits
         <button
           onClick={() => setShowStats(true)}
           className="text-sm px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-          aria-label="View habits statistics"
         >
           Stats
         </button>
       </h3>
 
-      <ul className="flex-grow overflow-auto space-y-1">
-        {habits.length === 0 && (
-          <li className="italic text-gray-500 dark:text-gray-400">
-            No habits yet. Add one below!
-          </li>
-        )}
-
-        {habits.map(({ id, name, history }) => {
-          const doneToday = history[today] || false;
-          return (
-            <li
-              key={id}
-              className={`flex items-center justify-between rounded p-1 ${
-                doneToday
-                  ? "bg-green-200 dark:bg-green-700 text-green-900 dark:text-green-300"
-                  : "bg-gray-100 dark:bg-gray-700"
-              }`}
-            >
-              <label className="flex items-center gap-2 flex-grow cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={doneToday}
-                  onChange={() => toggleDoneToday(id)}
-                  className="cursor-pointer"
-                />
-                <span>{name}</span>
-              </label>
-
-              <button
-                onClick={() => deleteHabit(id)}
-                className="ml-2 text-red-600 hover:text-red-800"
-                aria-label={`Delete habit ${name}`}
-                title="Delete"
-              >
-                ✕
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-
-      <div className="flex gap-2 mt-3">
+      {/* add bar */}
+      <div className="flex gap-2 mt-3 ml-2 mb-4">
         <input
-          type="text"
+          className="flex-grow p-1 rounded border border-gray-300 dark:border-gray-700
+                     bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200"
           placeholder="New habit"
-          className="flex-grow p-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200"
           value={newHabitName}
-          onChange={(e) => setNewHabitName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && addHabit()}
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            setNewHabitName(e.target.value)
+          }
+          onKeyDown={(e: KeyboardEvent<HTMLInputElement>) =>
+            e.key === "Enter" && addHabit()
+          }
         />
         <button
           onClick={addHabit}
@@ -134,9 +105,82 @@ export default function HabitsTab() {
         </button>
       </div>
 
+      {/* lists wrapper */}
+      <div className="flex-grow flex flex-col overflow-auto ml-2">
+        {/* undone list directly under add bar */}
+        <ul className="space-y-1">
+          {undone.length === 0 && habits.length === 0 && (
+            <li className="italic text-gray-500 dark:text-gray-400">
+              No habits yet. Add one above!
+            </li>
+          )}
+
+          {undone.map(({ id, name }) => (
+            <li
+              key={id}
+              className="flex items-center justify-between rounded p-1
+                         bg-gray-100 dark:bg-gray-700"
+            >
+              <label className="flex items-center gap-2 flex-grow cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={false}
+                  onChange={() => toggleDoneToday(id)}
+                  className="cursor-pointer"
+                />
+                <span>{name}</span>
+              </label>
+              <button
+                onClick={() => deleteHabit(id)}
+                className="ml-2 text-red-600 hover:text-red-800"
+                title="Delete"
+              >
+                ✕
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        {/* spacer pushes the next list to bottom */}
+        <div className="flex-grow mt-0.5" />
+
+        {/* done-today list anchored at bottom */}
+        {done.length > 0 && (
+          <ul className="space-y-1">
+            {done.map(({ id, name }) => (
+              <li
+                key={id}
+                className="flex items-center justify-between rounded p-1
+                           bg-green-200 dark:bg-green-700
+                           text-green-900 dark:text-green-300"
+              >
+                <label className="flex items-center gap-2 flex-grow cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked
+                    onChange={() => toggleDoneToday(id)}
+                    className="cursor-pointer"
+                  />
+                  <span>{name}</span>
+                </label>
+                <button
+                  onClick={() => deleteHabit(id)}
+                  className="ml-2 text-red-600 hover:text-red-800"
+                  title="Delete"
+                >
+                  ✕
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       {showStats && (
         <HabitsModal habits={habits} onClose={() => setShowStats(false)} />
-)}
+      )}
     </div>
   );
-}
+};
+
+export default HabitsTab;
