@@ -12,7 +12,7 @@ import { DateParser } from "../../helpers/dateParser";
 import { triggerSuccessPopUp } from "../ui/SuccessPopUp";
 import { setSessionCount as persistSessionCount } from "../../helpers/setChoices"; // ← add
 
-export default function TimerPanel() {
+export default function TimerPanel({ onSessionChange }: { onSessionChange?: () => void }) {
   const storage = useStorage();
   const { get, set, update, remove } = storage;
 
@@ -73,8 +73,9 @@ export default function TimerPanel() {
   } = useTimer(selectedMinutes * 60, {
     onFinish: (workedMinutes) => {
       const today = DateParser();
+      onSessionChange?.();
 
-      if (workedMinutes) {
+      if (workedMinutes && workedMinutes !== selectedMinutes) {
         update(DateParser(), { time: workedMinutes, session });
       } else {
         update(today, { time: selectedMinutes, session });
@@ -103,7 +104,7 @@ export default function TimerPanel() {
   /* keep raw seconds in sync while stopped */
   useEffect(() => {
     if (!isRunning) setDuration(selectedMinutes * 60);
-  }, [selectedMinutes, isRunning, setDuration]);
+  }, [selectedMinutes, isRunning, setDuration ]);
 
   /* clamp minutes when mode changes */
   useEffect(() => {

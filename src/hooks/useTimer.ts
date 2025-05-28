@@ -45,6 +45,7 @@ export const useTimer = (
         return prev - 1;
       });
     }, 10);                                  // ← 1 s tick (was 10 ms)
+    localStorage.removeItem('paused')
 
     return () => clearInterval(id);
   }, [isRunning, duration]);
@@ -52,7 +53,14 @@ export const useTimer = (
   /* --- reset finish flag whenever duration changes ----------------- */
   useEffect(() => {
     hasFinished.current = false;
-    if (!isRunning) setTimeLeft(duration);
+
+    if (!isRunning) {
+      if (localStorage.getItem('paused')) {
+        setTimeLeft(timeLeft)
+      } else {
+        setTimeLeft(duration - timeLeft)
+      }
+    }
   }, [duration, isRunning]);
 
   /* --- public controls --------------------------------------------- */
@@ -61,7 +69,10 @@ export const useTimer = (
     setIsRunning(true);
   };
 
-  const pause = () => setIsRunning(false);
+  const pause = (paused) => {
+      setIsRunning(false)
+      localStorage.setItem('paused', timeLeft);
+  };
 
   /** Reset timer.
    *  • If some time was worked already, add it to analytics via onFinish.
