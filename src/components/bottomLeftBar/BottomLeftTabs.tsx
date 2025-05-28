@@ -56,6 +56,7 @@ export default function BottomLeftTabs() {
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.3 }}
               style={{ position: "absolute", top: 0, left: 0, right: 0 }}
+              className="w-full h-full"
             >
               <AnalyticsTab />
             </motion.div>
@@ -83,6 +84,7 @@ export default function BottomLeftTabs() {
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.3 }}
               style={{ position: "absolute", top: 0, left: 0, right: 0 }}
+              className="h-full w-full"
             >
               <RemindersTab />
             </motion.div>

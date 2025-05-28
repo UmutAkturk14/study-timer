@@ -38,7 +38,7 @@ export default function AnalyticsTab() {
   const strokeDashoffset = circumference - percent * circumference;
 
   return (
-    <div className="flex flex-col items-center p-2 rounded-lg shadow-lg max-w-sm mx-auto">
+    <div className="flex w-full h-full flex-col items-center p-2 rounded-lg shadow-lg mx-auto">
       <h3 className="mb-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
         Daily / Weekly Analytics
       </h3>
