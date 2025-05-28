@@ -44,8 +44,8 @@ export default function BottomLeftTabs() {
       <section
         role="tabpanel"
         aria-labelledby={activeTab}
-        className="flex-grow p-4 overflow-hidden relative text-gray-800 dark:text-gray-200"
-        style={{ minHeight: 200 }} // adjust to fit tallest tab content
+        className="flex-grow p-4 overflow-hidden relative text-gray-800 dark:text-gray-200 h-full"
+        style={{ minHeight: 40 }} // adjust to fit tallest tab content
       >
         <AnimatePresence mode="wait" initial={false}>
           {activeTab === "analytics" && (
@@ -69,6 +69,7 @@ export default function BottomLeftTabs() {
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.3 }}
               style={{ position: "absolute", top: 0, left: 0, right: 0 }}
+              className="absolute inset-0"
             >
               <NotesTab />
             </motion.div>
