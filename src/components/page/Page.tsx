@@ -4,6 +4,7 @@ import TimerPanel from "../timer/TimerPanel";
 import TodoPanel from "../todo/TodoPanel";
 import MusicBar from "../musicBar/MusicBar";
 import BottomLeftTabs from "../bottomLeftBar/BottomLeftTabs";
+import TaskPanel from "../todo/TaskProvider";
 
 const Page = () => {
   const [sessionVersion, setSessionVersion] = useState(0);
@@ -23,8 +24,8 @@ const Page = () => {
         </div>
       </div>
 
-      <div className="w-[75%] flex flex-col">
-        <TodoPanel />
+      <div className="w-[75%] flex flex-col flex-grow mt-15">
+        <TaskPanel />
         <MusicBar />
       </div>
     </div>

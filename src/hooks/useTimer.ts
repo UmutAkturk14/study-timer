@@ -44,7 +44,7 @@ export const useTimer = (
         }
         return prev - 1;
       });
-    }, 10);                                  // ← 1 s tick (was 10 ms)
+    }, 1000);                                  // ← 1 s tick (was 10 ms)
     localStorage.removeItem('paused')
 
     return () => clearInterval(id);
