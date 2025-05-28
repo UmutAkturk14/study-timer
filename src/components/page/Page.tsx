@@ -1,25 +1,28 @@
+// Page.tsx
+import { useState } from "react";
 import TimerPanel from "../timer/TimerPanel";
 import TodoPanel from "../todo/TodoPanel";
 import MusicBar from "../musicBar/MusicBar";
 import BottomLeftTabs from "../bottomLeftBar/BottomLeftTabs";
 
 const Page = () => {
+  const [sessionVersion, setSessionVersion] = useState(0);
+
+  const onSessionChange = () => {
+    setSessionVersion((prev) => prev + 1); // triggers re-render
+  };
+
   return (
     <div className="flex h-screen w-screen overflow-hidden">
-      {/* Left side: vertical flex container */}
       <div className="w-[25%] flex flex-col h-screen">
-        {/* TimerPanel gets fixed or intrinsic height */}
         <div className="flex-shrink-0">
-          <TimerPanel />
+          <TimerPanel onSessionChange={onSessionChange} />
         </div>
-
-        {/* BottomLeftTabs fills remaining space and scrolls internally */}
-        <div className="flex-grow overflow-hidden">
-          <BottomLeftTabs />
+        <div className="flex-grow">
+          <BottomLeftTabs key={sessionVersion} />
         </div>
       </div>
 
-      {/* Right side stays the same */}
       <div className="w-[75%] flex flex-col">
         <TodoPanel />
         <MusicBar />
