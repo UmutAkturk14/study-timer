@@ -80,7 +80,7 @@ export default function TimerPanel({ onSessionChange }: { onSessionChange?: () =
       } else {
         update(today, { time: selectedMinutes, session });
 
-        if (session.multipleSession && !get("workStatus").isBreak) {
+        if (session.multipleSession && (!get("workStatus")?.isBreak && true)) {
           update(`${today}-Multiple`, { time: selectedMinutes, session });
 
           const isFinalSession = sessionIndex + 1 >= sessionCount;
